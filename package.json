@@ -1,0 +1,9 @@
+{
+  "name": "SongsLookUp",
+  "version": "1.0.0",
+  "description": "an app that looks up songs and search for countried in lyrics",
+  "main": "index.js",
+  "repository": "https://github.com/noha1/songsLookup-app.git",
+  "author": "noha <noha00@hotmail.com>",
+  "license": "MIT"
+}
