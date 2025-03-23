@@ -6,6 +6,7 @@ import Button from "../UI/Button/Button";
 import Input from "../UI/Input/Input";
 import useAuth from "../hooks/userAuth";
 
+
 const Login = (props) => {
 	const [enteredEmail, setEnteredEmail] = useState("");
 	const [emailIsValid, setEmailIsValid] = useState();
@@ -37,19 +38,19 @@ const Login = (props) => {
 
 	const validatePasswordHandler = () => {
 		setPasswordIsValid(enteredPassword.trim().length > 6);
-	};
+	}
 
 	const submitHandler = async (event) => {
 		event.preventDefault();
-		props.onLogin(enteredEmail, enteredPassword);
-
 		await login(enteredEmail, enteredPassword);
-		if (isAuthenticated) {
-			// Redirect to the search page after successful login
-			history.push("/search");
-		}
+	
 	};
-
+	if (isAuthenticated) {
+		console.log('authenticated')
+		// Redirect to the search page after successful login
+		history("/search");
+	}
+	
 	return (
 		<Card className={classes.login}>
 			<form onSubmit={submitHandler}>
@@ -65,6 +66,7 @@ const Login = (props) => {
 						onChange={emailChangeHandler}
 						onBlur={validateEmailHandler}
 						placeholder="Email"
+						size="30" 
 					/>
 				</div>
 				<div
@@ -87,7 +89,7 @@ const Login = (props) => {
 					</Button>
 				</div>
 			</form>
-			{error && <p>{error}</p>}
+			<strong>{error && <p>{error}</p>}</strong>
 		</Card>
 	);
 };

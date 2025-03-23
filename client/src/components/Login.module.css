@@ -34,13 +34,10 @@
 
 .control input:focus {
 	outline: none;
-
-	background: #f6dbfc;
 }
 
 .control.invalid input {
 	border-color: red;
-	background: #fbdada;
 }
 
 .actions {

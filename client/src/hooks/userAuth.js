@@ -1,4 +1,3 @@
-// src/hooks/useAuth.js
 import { useState } from "react";
 import axios from "axios";
 
@@ -13,7 +12,8 @@ const useAuth = () => {
 		setError("");
 
 		try {
-			const response = await axios.post("http://localhost:5000/api/login", {
+			console.log("connecting to the api loging");
+			const response = await axios.post("http://localhost:5000/login", {
 				email,
 				password,
 			});
@@ -27,7 +27,9 @@ const useAuth = () => {
 				setLoading(false);
 			}
 		} catch (err) {
-			setError("Something went wrong. Please try again later.");
+			setError(
+				"from user authentication : Something went wrong. Please try again later."
+			);
 			setLoading(false);
 		}
 	};
