@@ -81,7 +81,9 @@ app.get("/track", async (req, res) => {
 					throw new Error('Failed to process the lyrics. Invalid response status.');
 				  }
 			
-			return lyricsResponse.data.message.body.lyrics.lyrics_body;
+			//return lyricsResponse.data.message.body.lyrics.lyrics_body;
+			return lyricsResponse.data?.message?.body?.lyrics?.lyrics_body ?? 'Lyrics not available';
+
 		  } catch (error) {
 			console.error('Error fetching song details!', error);
 			return;
@@ -91,6 +93,9 @@ app.get("/track", async (req, res) => {
 app.post('/topicFinder', async (req, res) => {
 	
 	const { lyrics } = req.body;
+	
+	//mock
+	const songLyrics = "I will survive, oh as long as I know how to love, I know I will stay alive";
 
 	if (!lyrics) {
 		return res.status(400).json({ error: "No song lyrics provided" });
@@ -109,7 +114,6 @@ app.post('/topicFinder', async (req, res) => {
 		data,
 		{ headers }
 	);
-	console.log(response);
 	if (response && response.data[0].label) {
 	const summary = 'Detected Emotion:' + response.data[0].label ||  " missing topic... ";
     const score = response.data[0].score || 0;
