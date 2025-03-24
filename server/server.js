@@ -5,7 +5,6 @@ const port = process.env.PORT || 5000;
 const axios = require("axios");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-
 const API_TOKEN = process.env.HUGGINGFACE_API_TOKEN; // Fetch the token
 const MUSIXMATCH_API_KEY = process.env.MUSIXMATCH_API_KEY;
 app.use(cors());
@@ -29,41 +28,41 @@ app.post("/login", (req, res) => {
 	// }
 });
 
-app.get("/track",async (req, res) => {
+app.get("/track", async (req, res) => {
 	const { artist, title } = req.query;
 	console.log('artist, title ', artist, title);
-
+		// Check if both artist and title are provided
+	if (!artist || !title) {
+	  return res.status(400).json({ error: 'Artist and title are required' });
+	}
+	  
 	try {
-	 	// Fetch song ID from Musixmatch APi
-		 console.log('artist, title ');
-	     console.log(artist, title);
-		const trackResponse = await axios.get(
-		  'https://api.musixmatch.com/ws/1.1/track.search',
-		  {
+		  // Fetch song ID from Musixmatch API
+		const trackResponse = await axios.get('https://api.musixmatch.com/ws/1.1/track.search', {
 			params: {
-			  q_artist: "pink floyd",
-			  q_track: "wish you were here",
+			  q_artist: artist,  // Use the artist from the query params
+			  q_track: title,    // Use the title from the query params
 			  apikey: MUSIXMATCH_API_KEY,
 			},
-		  }
-		);
-
+		  });
+	  
 		if (trackResponse.status !== 200) {
 			throw new Error('Failed to process the song. Invalid response status.');
-		}
-		const trackId =
-		trackResponse.data.message.body.track_list[0].track.track_id;
-		// Extract countries from lyrics (basic implementation)
-		const countries = extractCountries(lyrics);
-		const lyrics = lyricsFinder(trackId);
-		const truncatedLyrics = lyrics.slice(0, 400)+ '...';
-		// Send response to the frontend
-		res.json({ truncatedLyrics, countries });
-	  } catch (error) {
+		  }
+	  
+		const trackId = trackResponse.data.message.body.track_list[0].track.track_id;
+		  // Assuming you have the extractCountries and lyricsFinder functions already implemented
+	    const lyrics = await lyricsFinder(trackId);
+	    const countries = extractCountries(lyrics);  // You should make sure `extractCountries` function is correctly implemented
+		const truncatedLyrics = lyrics.slice(0, 200) + '...';
+	  
+		  // Send response to the frontend
+		res.json({ lyrics, truncatedLyrics, countries });
+	} catch (error) {
 		console.error('Error fetching song details!', error);
-		res.status(500).json({ error: 'An error occurred' });
-	  }
-	});
+		 res.status(500).json({ error: 'An error occurred' });
+		}
+	  });
 
 
 	const lyricsFinder = async (trackId) => {
@@ -92,9 +91,6 @@ app.get("/track",async (req, res) => {
 app.post('/topicFinder', async (req, res) => {
 	
 	const { lyrics } = req.body;
-	
-	//mock
-	const songLyrics = "I will survive, oh as long as I know how to love, I know I will stay alive";
 
 	if (!lyrics) {
 		return res.status(400).json({ error: "No song lyrics provided" });
@@ -113,6 +109,7 @@ app.post('/topicFinder', async (req, res) => {
 		data,
 		{ headers }
 	);
+	console.log(response);
 	if (response && response.data[0].label) {
 	const summary = 'Detected Emotion:' + response.data[0].label ||  " missing topic... ";
     const score = response.data[0].score || 0;
@@ -129,7 +126,7 @@ app.post('/topicFinder', async (req, res) => {
 // Simple country extraction method (predefined list for simplicity)
 const extractCountries = (lyrics) => {
 	const countries = [
-		  "USA", "Canada", "Germany", "France", "Brazil", "China", "Russia", "Ukraine",
+		 "USA", "Canada", "Germany", "France", "Brazil", "China", "Russia", "Ukraine",
 		  "India", "Mexico", "Italy", "Japan", "Spain", "Portugal", "UAE", "Portugal", "Egypt", "Lebanon"
 		];
 	  
