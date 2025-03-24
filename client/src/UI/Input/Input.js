@@ -11,6 +11,7 @@ const Input = (props) => {
 			placeholder={props.placeholder}
 			className={`${classes.input} ${props.className}`}
 			onClick={props.onClick}
+			required={props.required}
 		/>
 	);
 };

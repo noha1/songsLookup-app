@@ -1,4 +1,4 @@
-require("dotenv").config(); // Load environment variables from .env file
+require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 5000;
@@ -6,10 +6,11 @@ const axios = require("axios");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 
+const API_TOKEN = process.env.HUGGINGFACE_API_TOKEN; // Fetch the token
+const MUSIXMATCH_API_KEY = process.env.MUSIXMATCH_API_KEY;
 app.use(cors());
 app.use(bodyParser.json());
 
-const MUSIXMATCH_API_KEY = "832b4eaaee025e91b12c7ec4894e8eba";
 // mock login credentials 
 //const users = [{ email: "test@hotmail.com", password: "password123" }];
 
@@ -30,47 +31,32 @@ app.post("/login", (req, res) => {
 
 app.get("/track",async (req, res) => {
 	const { artist, title } = req.query;
-	try {
-		// Fetch song ID from Musixmatch API
+	console.log('artist, title ', artist, title);
 
+	try {
+	 	// Fetch song ID from Musixmatch APi
+		 console.log('artist, title ');
+	     console.log(artist, title);
 		const trackResponse = await axios.get(
 		  'https://api.musixmatch.com/ws/1.1/track.search',
 		  {
 			params: {
-			  q_artist: "shakira",
-			  q_track: "hips don't lie",
+			  q_artist: "pink floyd",
+			  q_track: "wish you were here",
 			  apikey: MUSIXMATCH_API_KEY,
 			},
 		  }
 		);
-	
+
+		if (trackResponse.status !== 200) {
+			throw new Error('Failed to process the song. Invalid response status.');
+		}
 		const trackId =
 		trackResponse.data.message.body.track_list[0].track.track_id;
-		// Fetch lyrics for the song
-		// Check if the response is successful (e.g., status code is 200)
-		 if (trackResponse.status !== 200) {
-			throw new Error('Failed to process the song. Invalid response status.');
-		  }
-
-		const lyricsResponse = await axios.get(
-		  'https://api.musixmatch.com/ws/1.1/track.lyrics.get',
-		  {
-			params: {
-			  track_id: trackId,
-			  apikey: MUSIXMATCH_API_KEY,
-			},
-		  }
-		);
-		if (lyricsResponse.status !== 200) {
-			throw new Error('Failed to process the lyrics. Invalid response status.');
-		  }
-	
-		const lyrics = lyricsResponse.data.message.body.lyrics.lyrics_body;
-
-		const truncatedLyrics = lyrics.slice(0, 200) + '...';
 		// Extract countries from lyrics (basic implementation)
 		const countries = extractCountries(lyrics);
-	
+		const lyrics = lyricsFinder(trackId);
+		const truncatedLyrics = lyrics.slice(0, 400)+ '...';
 		// Send response to the frontend
 		res.json({ truncatedLyrics, countries });
 	  } catch (error) {
@@ -80,47 +66,71 @@ app.get("/track",async (req, res) => {
 	});
 
 
-// Route to summarize song lyrics using ChatGPT
-app.post('/summarise', async (req, res) => {
-  const { songLyrics } = req.body;
-  const apiKey ="sk-proj-UEJUbWF23vOZTGzSB5q6T3BlbkFJ7dJJuRl37aYdnaGh5VzZ";
+	const lyricsFinder = async (trackId) => {
+		
+		try { 
+			const lyricsResponse  = await axios.get(
+				  'https://api.musixmatch.com/ws/1.1/track.lyrics.get',
+				  {
+					params: {
+					  track_id: trackId,
+					  apikey: MUSIXMATCH_API_KEY,
+					},
+				  }
+				);
+				if (lyricsResponse.status !== 200) {
+					throw new Error('Failed to process the lyrics. Invalid response status.');
+				  }
+			
+			return lyricsResponse.data.message.body.lyrics.lyrics_body;
+		  } catch (error) {
+			console.error('Error fetching song details!', error);
+			return;
+		  }};
 
-  if (!songLyrics) {
-    return res.status(400).json({ error: "No song lyrics provided" });
-  }
+// Route to summarize song lyrics using facehugger
+app.post('/topicFinder', async (req, res) => {
+	
+	const { lyrics } = req.body;
+	
+	//mock
+	const songLyrics = "I will survive, oh as long as I know how to love, I know I will stay alive";
+
+	if (!lyrics) {
+		return res.status(400).json({ error: "No song lyrics provided" });
+	  }
+	const data = {
+	inputs: songLyrics,
+};
+  const headers = {
+	'Authorization': `Bearer ${API_TOKEN}`,
+	'Content-Type': 'application/json'
+};
 
   try {
-    // Call OpenAI's API to summarize the song lyrics
-    const response = await axios.post(
-      'https://api.openai.com/v1/completions',
-      {
-        model: 'gpt-3.5-turbo', // or 'gpt-4' if you're using GPT-4
-        prompt: `Summarize this song: \n\n${songLyrics}`,
-        max_tokens: 100, // adjust depending on how short or detailed you want the summary to be
-        temperature: 0.7, // Adjust creativity
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    const summary = response.data.choices[0].text.trim();
-	console.log(summary);
-    res.json({ summary });
-
-  } catch (error) {
-    console.error('Error fetching response from OpenAI:', error);
+	const response = await axios.post(
+		'https://api-inference.huggingface.co/models/SamLowe/roberta-base-go_emotions',
+		data,
+		{ headers }
+	);
+	if (response && response.data[0].label) {
+	const summary = 'Detected Emotion:' + response.data[0].label ||  " missing topic... ";
+    const score = response.data[0].score || 0;
+    console.log(`The song is most likely about the emotion: ${emotion} (%: ${score.toFixed(2)})`);
+	res.json({ summary });
+	}
+} catch (error) {
+    console.error('Error fetching response from OpenAI:', error.message);
     res.status(500).json({ error: 'Failed to summarize the song' });
   }
 });
-	// Simple country extraction (use a predefined list for simplicity)
+
+
+// Simple country extraction method (predefined list for simplicity)
 const extractCountries = (lyrics) => {
 	const countries = [
-		  "USA", "Canada", "Germany", "France", "Brazil", 
-		  "India", "Mexico", "Italy", "Japan", "Spain", "Portugal", "UAE", ""
+		  "USA", "Canada", "Germany", "France", "Brazil", "China", "Russia", "Ukraine",
+		  "India", "Mexico", "Italy", "Japan", "Spain", "Portugal", "UAE", "Portugal", "Egypt", "Lebanon"
 		];
 	  
 		// Create a hash set (using an object)

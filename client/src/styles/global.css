@@ -16,6 +16,7 @@ h1 {
 	padding: 10px;
 	margin: 5px;
 	box-sizing: border-box;
+
 }
 
 .btn {
@@ -39,4 +40,36 @@ form {
 ul {
 	list-style-type: none;
 	padding: 0;
+}
+
+input{	flex: 3;
+	font: inherit;
+	padding: 0.35rem 0.35rem;
+	border-radius: 6px;
+	border: 1px solid #ccc;
+
+	font: inherit;
+	border: 1px solid #4f005f;
+	padding: 0.75rem 3.5rem;
+
+	font-size: 1.15rem;
+	border-radius: 30px;
+	padding: 10px;
+	margin: 5px;
+	width: 100%;
+	max-width: 300px;
+	box-sizing: border-box;
+}
+
+
+
+
+input:disabled,
+input:focus:disabled,
+input:hover:disabled,
+input:active:disabled {
+	background: #ccc;
+	border-color: #ccc;
+	color: #666666;
+	cursor: not-allowed;
 }
