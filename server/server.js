@@ -33,6 +33,7 @@ app.post("/login", (req, res) => {
 app.get("/track", async (req, res) => {
 	const { artist, title } = req.query;
 	console.log('artist, title ', artist, title);
+	let lyrics= "";
 		// Check if both artist and title are provided
 	if (!artist || !title) {
 	  return res.status(400).json({ error: 'Artist and title are required' });
@@ -47,27 +48,32 @@ app.get("/track", async (req, res) => {
 			  apikey: MUSIXMATCH_API_KEY,
 			},
 		  });
-	  
-		if (trackResponse.status !== 200) {
-			throw new Error('Failed to process the song. Invalid response status.');
-		  }
-	  
-		const trackId = trackResponse.data.message.body.track_list[0].track.track_id;
-	    const lyrics = await lyricsFinder(trackId);
-	    const countries = extractCountries(lyrics);
-		const truncatedLyrics = lyrics.slice(0, 200) + '...';
-	  
-		  // Send response to the frontend
+
+		if (trackResponse?.status === 200 && trackResponse?.data?.message?.body?.track_list?.length > 0) {
+		const trackId = trackResponse.data.message.body.track_list[0]?.track?.track_id;
+	
+		if (trackId) {
+			console.log('Track ID:', trackId);
+			lyrics = await lyricsFinder(trackId);
+			
+		} else {
+			console.error('Track ID is missing.');
+	
+		}
+		const countries = lyrics ? extractCountries(lyrics): [];
+		const truncatedLyrics = lyrics ? lyrics.slice(0, 200) + '...': ' no lyrics found';
 		res.json({ lyrics, truncatedLyrics, countries });
+	}
+		  // Send response to the frontend
 	} catch (error) {
 		console.error('Error fetching song details!', error);
-		 res.status(500).json({ error: 'An error occurred' });
+	    res.status(500).json({ error: 'An error occurred' });
 		}
 	  });
 
 
 	const lyricsFinder = async (trackId) => {
-		
+		if (!trackId){return 'trackId is required'};
 		try { 
 			const lyricsResponse  = await axios.get(
 				  'https://api.musixmatch.com/ws/1.1/track.lyrics.get',
@@ -83,7 +89,7 @@ app.get("/track", async (req, res) => {
 				  }
 			
 			//return lyricsResponse.data.message.body.lyrics.lyrics_body;
-			return lyricsResponse.data?.message?.body?.lyrics?.lyrics_body ?? 'Lyrics not available';
+			return lyricsResponse.data?.message?.body?.lyrics?.lyrics_body ?? '0';
 
 		  } catch (error) {
 			console.error('Error fetching song details!', error);
@@ -116,7 +122,6 @@ app.post('/topicFinder', async (req, res) => {
 		const summary = 'Detected Emotion:' + (response.data[0]?.label ?? "missing topic...");
 		const score = response.data[0]?.score ??  0;
 		console.log(`The song is most likely about the emotion: ${response.data[0]?.label} (%: ${score.toFixed(2)})`);
-		console.log(summary);
 		res.json({ summary });
 
 } catch (error) {

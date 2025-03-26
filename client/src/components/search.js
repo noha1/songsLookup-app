@@ -13,29 +13,54 @@ function App() {
 	// eslint-disable-next-line
 	const [countries, setCountries] = useState([]);
 	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState("");
 
 	// Handle form submission
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		setLoading(true);
+		setError(null);
+		setSummary(""); // Clear previous summary
 
 		try {
+			if (!artist || !title) {
+				alert("Both artist and title are required.");
+				return;
+			}
+
 			const trackResponse = await axios.get("http://localhost:5000/track", {
-				artist, // Data sent to the server
-				title,
+				params: {
+					artist: artist, // artist from the form input
+					title: title, // title from the form input
+				},
 			});
 
-			const lyrics = trackResponse.data.truncatedLyrics;
-			console.log("noha lyrics : ", trackResponse.data.truncatedLyrics);
-			const topicResponse = lyrics
-				? await axios.post("http://localhost:5000/topicFinder", {
-						lyrics, // payload
-				  })
-				: " ";
+			if (trackResponse.status == 200) {
+				// Display the result from the backend
+				const { lyrics, truncatedLyrics, countries } = trackResponse.data;
+				setCountries(countries || []);
 
-			setSummary(topicResponse.summary || "No summary available");
-			setCountries(trackResponse.data.countries || []);
+				if (lyrics == "0") {
+					setError("Failed to fetch song details.");
+					console.error("Failed to fetch song detials");
+				}
+				else{
+					const topicResponse = await axios.post(
+						"http://localhost:5000/topicFinder",
+						{
+							lyrics,
+						}
+					);
+					console.log('i am here', lyrics, truncatedLyrics);
+					setSummary(topicResponse.summary ?? truncatedLyrics);
+				}
+			} else {
+				setError("Failed to fetch song details.")
+				throw new Error("Failed to fetch track details.");
+			}
 		} catch (error) {
+			setError("Error fetching song details")
+
 			console.error("Error fetching song details", error);
 		} finally {
 			setLoading(false);
@@ -72,7 +97,8 @@ function App() {
 					<Button type="submit">Get Song Summary</Button>
 				</form>
 				{loading && <p>Loading...</p>}
-				{/* to do Display error message */}
+				{/* Error message display */}
+				{error && <p>{error}</p>}
 				{summary && (
 					<div>
 						<h2>Summary</h2>
@@ -90,6 +116,7 @@ function App() {
 						</ul>
 					</div>
 				)}
+			
 			</div>
 		</Card>
 	);
