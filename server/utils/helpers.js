@@ -1,5 +1,6 @@
 // Simple country extraction method (predefined list for simplicity)
 const extractCountries = (lyrics) => {
+	if (!lyrics){return;}
 	const countries = [
 		"USA",
 		"Canada",
